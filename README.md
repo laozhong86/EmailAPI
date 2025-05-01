@@ -143,7 +143,7 @@ ENVIRONMENT=dev
 
 如果新版本无法正常工作，可以通过以下步骤回滚到旧版本：
 
-1. 找到备份文件`img2vid.exe.old`
-2. 删除或重命名当前的`img2vid.exe`
-3. 将`img2vid.exe.old`重命名为`img2vid.exe`
+1. 找到备份文件`emailAPI.exe.old`
+2. 删除或重命名当前的`emailAPI.exe`
+3. 将`emailAPI.exe.old`重命名为`emailAPI.exe`
 4. 重新启动应用

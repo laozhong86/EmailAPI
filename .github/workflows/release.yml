@@ -26,9 +26,10 @@ jobs:
       
     - name: 打包应用
       run: |
-        # 使用PowerShell执行打包脚本
-        .\build_exe.ps1 -OutputName img2vid.exe -SkipInstall
-      shell: pwsh
+        # 使用批处理脚本打包应用
+        # 注意：输出文件会被放置在项目根目录的dist文件夹中
+        .\scripts\build_exe.bat --skip-install emailAPI.exe
+      shell: cmd
       
     - name: 获取版本号
       id: get_version
@@ -52,13 +53,14 @@ jobs:
           - 自动构建的Release
           
           ### 安装说明
-          1. 下载 img2vid.exe
+          1. 下载 emailAPI.exe
           2. 双击运行
           
           ### 自动更新
           应用会在启动时自动检查更新并下载安装新版本
         files: |
-          dist/img2vid.exe
-          dist/img2vid.exe.sha256
+          # dist目录位于项目根目录，不是scripts目录
+          dist/emailAPI.exe
+          dist/emailAPI.exe.sha256
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

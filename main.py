@@ -195,7 +195,7 @@ def main():
                 import threading
                 update_thread = threading.Thread(
                     target=check_for_update,
-                    args=("laozhong86", "EmailAPI", "img2vid.exe"),
+                    args=("laozhong86", "EmailAPI", "emailAPI.exe"),
                     daemon=True
                 )
                 update_thread.start()

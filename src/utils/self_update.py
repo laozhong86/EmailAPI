@@ -71,10 +71,15 @@ def get_latest_release(owner="laozhong86", repo="EmailAPI"):
     
     try:
         response = requests.get(url, headers=headers, timeout=10)
+        # 处理404错误 - 表示仓库没有发布版本
+        if response.status_code == 404:
+            logging.debug(f"仓库 {owner}/{repo} 尚未发布版本")
+            return None
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        logging.error(f"获取最新版本信息失败: {e}")
+        # 使用debug级别记录错误，避免在控制台显示
+        logging.debug(f"获取最新版本信息失败: {e}")
         return None
 
 def download_file(url, target_path):
@@ -128,7 +133,7 @@ def calculate_sha256(file_path):
         logging.error(f"计算SHA-256失败: {e}")
         return None
 
-def check_for_update(owner="laozhong86", repo="EmailAPI", exe_name="img2vid.exe"):
+def check_for_update(owner="laozhong86", repo="EmailAPI", exe_name="emailAPI.exe"):
     """
     检查更新并在有新版本时自动更新
     
@@ -140,29 +145,29 @@ def check_for_update(owner="laozhong86", repo="EmailAPI", exe_name="img2vid.exe"
     Returns:
         bool: 如果有更新并成功更新返回True，否则返回False
     """
-    logging.info("正在检查更新...")
+    logging.debug("正在检查更新...")
     
     # 获取当前版本
     current_version = get_app_version()
-    logging.info(f"当前版本: {current_version}")
+    logging.debug(f"当前版本: {current_version}")
     
     # 获取最新版本信息
     latest_release = get_latest_release(owner, repo)
     if not latest_release:
-        logging.warning("无法获取最新版本信息，跳过更新检查")
+        logging.debug("无法获取最新版本信息，跳过更新检查")
         return False
     
     # 解析最新版本号（去掉v前缀）
     latest_version_str = latest_release.get("tag_name", "").lstrip("v")
     if not latest_version_str:
-        logging.warning("无法解析最新版本号，跳过更新检查")
+        logging.debug("无法解析最新版本号，跳过更新检查")
         return False
     
-    logging.info(f"最新版本: {latest_version_str}")
+    logging.debug(f"最新版本: {latest_version_str}")
     
     # 比较版本
     if version.parse(latest_version_str) <= version.parse(current_version):
-        logging.info("已经是最新版本，无需更新")
+        logging.debug("已经是最新版本，无需更新")
         return False
     
     logging.info(f"发现新版本: {latest_version_str}，准备更新")

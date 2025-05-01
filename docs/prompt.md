@@ -11,17 +11,17 @@
 
 # 交付目标
 1. **本地打包脚本**  
-   - 使用 **PyInstaller --onefile**（或你的最佳实践）生成 `img2vid.exe`  
+   - 使用 **PyInstaller --onefile**（或你的最佳实践）生成 `emailAPI.exe`  
    - 支持将第三方依赖和资源打进 exe  
 2. **GitHub Actions**  
    - 触发：`push --tags`  
-   - 步骤：安装 Python 3.10 → 安装依赖 → 打包 exe → 创建/更新 Release，上传 exe Asset  
+   - 步骤：安装 Python 3.12 → 安装依赖 → 打包 exe → 创建/更新 Release，上传 exe Asset  
 3. **自更新代码 self_update.py**  
    - 启动时读取 `__version__`（与 tag 同步）  
    - 请求 `https://api.github.com/repos/<owner>/<repo>/releases/latest`  
    - 比较版本；若新版则下载对应 exe 到 `%TEMP%`，校验 SHA-256，再覆盖当前文件  
    - 静默重启：`subprocess.Popen([new_exe_path]); sys.exit(0)`  
-   - 若当前 exe 被占用，先保存为 `img2vid_new.exe`，下次启动再替换  
+   - 若当前 exe 被占用，先保存为 `emailAPI_new.exe`，下次启动再替换  
 4. **安全**  
    - 私有仓库场景：下载时使用只读 `GH_TOKEN`；此 Token 不能硬编码在源码里，可放到 exe 外侧的 `config.ini`  
 5. **文档**  
