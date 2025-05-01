@@ -64,7 +64,7 @@ if exist "dist\%OUTPUT_NAME%" (
     echo Packaging successful: %CD%\dist\%OUTPUT_NAME%
     
     REM Calculate SHA-256 hash
-    certutil -hashfile "dist\%OUTPUT_NAME%" SHA256 > "dist\%OUTPUT_NAME%.sha256"
+    powershell -Command "(Get-FileHash -Algorithm SHA256 -Path 'dist\%OUTPUT_NAME%').Hash.ToLower()" > "dist\%OUTPUT_NAME%.sha256"
     echo SHA-256 hash saved to: %CD%\dist\%OUTPUT_NAME%.sha256
     
     REM Display file size
