@@ -147,34 +147,25 @@ def start_api_service():
     print("\n正在启动Email API服务...")
     
     try:
-        # 禁用debug模式，防止Flask自动重启
-        # 使用子进程启动Flask服务，确保主进程在服务启动后不会继续执行
-        import subprocess
-        import signal
-        
-        # 创建一个新的Python进程来运行Flask服务
+        # 直接在主进程中启动服务，而不是使用子进程
         print("服务已启动，按Ctrl+C终止服务...")
         
-        # 使用当前Python解释器启动一个新进程
-        flask_process = subprocess.Popen([
-            sys.executable, 
-            "-c", 
-            "import sys; sys.path.insert(0, '.'); from src.email_service import start_service; start_service(debug=False)"
-        ])
+        # 捕获Ctrl+C信号
+        import signal
         
-        # 设置信号处理，确保在收到中断信号时终止子进程
+        # 定义信号处理函数
         def signal_handler(sig, frame):
             print("\nEmail服务已被用户中断")
-            flask_process.terminate()
             sys.exit(0)
         
         # 注册SIGINT信号处理器（Ctrl+C）
         signal.signal(signal.SIGINT, signal_handler)
         
-        # 等待Flask进程结束
-        flask_process.wait()
+        # 直接在主进程中启动Flask服务
+        # 这将阻塞主进程，直到服务终止
+        start_service(debug=False)
         
-        # 如果Flask进程正常结束，直接退出程序
+        # 如果服务正常结束，直接退出程序
         print("\nEmail服务已终止")
         sys.exit(0)
     except Exception as e:
