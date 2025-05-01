@@ -1,0 +1,38 @@
+# 敏感信息和环境配置
+.env
+.env.*
+!.env.example
+
+# 认证数据
+/data/oauth/*.json
+/data/oauth/*.used
+
+# Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+/data/temp/

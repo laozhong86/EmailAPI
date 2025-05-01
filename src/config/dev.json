@@ -1,0 +1,8 @@
+{
+  "api": {
+    "debug": true
+  },
+  "email": {
+    "concurrency": 1
+  }
+}
