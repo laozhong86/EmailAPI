@@ -1,0 +1,13 @@
+[GitHub]
+# GitHub API访问令牌（只读权限）
+# 用于检查更新和下载新版本
+# 请将此文件复制为config.ini并填入您的Token
+Token = 
+
+[Update]
+# 是否启用自动更新（true/false）
+AutoUpdate = true
+# 仓库所有者
+Owner = laozhong86
+# 仓库名称
+Repo = EmailAPI
