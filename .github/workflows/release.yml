@@ -26,10 +26,10 @@ jobs:
       
     - name: 打包应用
       run: |
-        # 使用批处理脚本打包应用
+        # 使用PowerShell脚本打包应用
         # 注意：输出文件会被放置在项目根目录的dist文件夹中
-        .\scripts\build_exe.bat --skip-install emailAPI.exe
-      shell: cmd
+        .\scripts\build_exe.ps1 -SkipInstall -OutputName emailAPI.exe
+      shell: pwsh
       
     - name: 获取版本号
       id: get_version
