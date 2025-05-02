@@ -22,6 +22,7 @@ project_root = script_path.parent  # 当前目录就是Email目录
 sys.path.insert(0, str(project_root))
 
 # 导入本地模块
+initial_import_error = None # 新增变量来存储初始导入错误
 try:
     from src.utils.convert_txt_to_json import convert_txt_to_json
     from src.email_service import start_service
@@ -29,8 +30,10 @@ try:
     modules_available = True
     logging.info("成功导入所需模块")
 except ImportError as e:
-    logging.error(f"导入模块失败: {e}")
+    logging.error(f"初始化导入模块失败: {e}")
+    print(f"!!! 初始化导入错误: {e} !!!") # <-- 增加直接打印
     modules_available = False
+    initial_import_error = e # <-- 存储错误信息
 
 # 全局变量，用于存储更新信息
 update_info = None
@@ -153,13 +156,15 @@ def start_api_service():
     print("=" * 50)
     print("启动Email API服务".center(46))
     print("=" * 50)
-    
+
     if not modules_available:
         print("错误: 无法导入必要模块，请检查安装")
+        if initial_import_error: # <-- 检查是否有存储的初始错误
+             print(f"详细错误: {initial_import_error}") # <-- 打印存储的错误
         input("\n按回车键返回主菜单...")
-        display_menu()
+        display_menu(update_info=update_info)
         return
-    
+
     print("\n正在启动Email API服务...")
     
     try:

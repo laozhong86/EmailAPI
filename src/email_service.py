@@ -21,7 +21,7 @@ sys.path.insert(0, str(src_root))
 try:
     # Adjust the import path based on the actual structure if needed
     # Assuming cloud_email_api.py is directly inside src/Email/src/api
-    from Email.src.api import cloud_email_api
+    from src.api import cloud_email_api
     email_api_available = True
     logging.info("Successfully imported cloud_email_api.")
 except ImportError as e:
@@ -31,7 +31,7 @@ except ImportError as e:
 
 # --- 导入配置管理器 ---
 try:
-    from Email.src.config.config_manager import load_config
+    from src.config.config_manager import load_config
     config = load_config()
     logging.info("成功加载配置")
 except ImportError as e:

@@ -1,18 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('__version__.py', '.'), ('.env.example', '.'), ('config.ini.example', '.')]
-binaries = [('C:\\ProgramData\\anaconda3\\Library\\bin\\libcrypto-3-x64.dll', '.')]
-hiddenimports = ['xml.parsers.expat']
+datas = [('__version__.py', '.'), ('.env.example', '.')]
+binaries = [('C:\\ProgramData\\anaconda3\\Library\\bin\\libexpat.dll', '.'), ('C:\\ProgramData\\anaconda3\\Library\\bin\\libssl-3-x64.dll', '.'), ('C:\\ProgramData\\anaconda3\\Library\\bin\\libcrypto-3-x64.dll', '.'), ('C:\\ProgramData\\anaconda3\\Library\\bin\\ffi.dll', '.')]
+hiddenimports = ['flask', 'src.api.cloud_email_api', 'src.config.config_manager', 'xml.parsers.expat']
 tmp_ret = collect_all('xml')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('email')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('pkg_resources')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('plistlib')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
     ['main.py'],
-    pathex=[],
+    pathex=['.\\src'],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
