@@ -55,6 +55,7 @@ def display_menu(countdown=3, update_info=None):
     clear_screen()
     print("=" * 50)
     print("Email 管理系统".center(46))
+    print(f"当前版本: v{__version__}".center(46))
     print("=" * 50)
     print("\n请选择操作:")
     print("1. 导入邮箱账号")
