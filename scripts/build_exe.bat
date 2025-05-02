@@ -46,11 +46,30 @@ set PYINSTALLER_CMD=%PYINSTALLER_CMD% --hidden-import=xml.parsers.expat
 set PYINSTALLER_CMD=%PYINSTALLER_CMD% --collect-all=xml
 set PYINSTALLER_CMD=%PYINSTALLER_CMD% --collect-all=email
 
+REM 添加更多的XML相关模块和DLL
+set PYINSTALLER_CMD=%PYINSTALLER_CMD% --hidden-import=pyexpat
+set PYINSTALLER_CMD=%PYINSTALLER_CMD% --hidden-import=_elementtree
+set PYINSTALLER_CMD=%PYINSTALLER_CMD% --hidden-import=xml.etree.ElementTree
+
+REM 显式添加Python DLL路径
+for %%D in (pyexpat.pyd _elementtree.pyd) do (
+    if exist "%PYTHONHOME%\DLLs\%%D" (
+        set PYINSTALLER_CMD=%PYINSTALLER_CMD% --add-binary="%PYTHONHOME%\DLLs\%%D;."
+    ) else if exist "%PYTHONHOME%\Lib\site-packages\%%D" (
+        set PYINSTALLER_CMD=%PYINSTALLER_CMD% --add-binary="%PYTHONHOME%\Lib\site-packages\%%D;."
+    )
+)
+
 REM Try to locate Anaconda DLLs and add them
 for %%D in (libexpat.dll libssl-3-x64.dll libcrypto-3-x64.dll) do (
     if exist "C:\ProgramData\anaconda3\Library\bin\%%D" (
         set PYINSTALLER_CMD=%PYINSTALLER_CMD% --add-binary="C:\ProgramData\anaconda3\Library\bin\%%D;."
     )
+)
+
+REM 尝试从Python安装目录添加libexpat.dll
+if exist "%PYTHONHOME%\libexpat.dll" (
+    set PYINSTALLER_CMD=%PYINSTALLER_CMD% --add-binary="%PYTHONHOME%\libexpat.dll;."
 )
 
 REM Add main program and output directory
