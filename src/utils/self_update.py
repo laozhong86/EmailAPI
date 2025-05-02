@@ -133,7 +133,7 @@ def calculate_sha256(file_path):
         logging.error(f"计算SHA-256失败: {e}")
         return None
 
-def check_for_update(owner="laozhong86", repo="EmailAPI", exe_name="emailAPI.exe"):
+def check_for_update(owner="laozhong86", repo="EmailAPI", exe_name="emailAPI.exe", auto_update=True):
     """
     检查更新并在有新版本时自动更新
     
@@ -141,9 +141,11 @@ def check_for_update(owner="laozhong86", repo="EmailAPI", exe_name="emailAPI.exe
         owner: 仓库所有者
         repo: 仓库名称
         exe_name: 可执行文件名称
+        auto_update: 是否自动更新，如果为False，则只检查更新并返回更新信息
         
     Returns:
-        bool: 如果有更新并成功更新返回True，否则返回False
+        bool or dict: 如果auto_update为True，返回布尔值表示是否有更新并成功更新；
+                     如果auto_update为False且有更新可用，返回包含更新信息的字典
     """
     logging.debug("正在检查更新...")
     
@@ -189,17 +191,9 @@ def check_for_update(owner="laozhong86", repo="EmailAPI", exe_name="emailAPI.exe
         logging.warning("无法获取下载URL，跳过更新")
         return False
     
-    # 创建临时目录用于下载
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_file_path = os.path.join(temp_dir, exe_name)
-        logging.info(f"正在下载新版本到: {temp_file_path}")
-        
-        # 下载文件
-        if not download_file(download_url, temp_file_path):
-            logging.error("下载新版本失败，跳过更新")
-            return False
-        
-        # 验证SHA-256（如果有提供）
+    # 如果不是自动更新，返回更新信息
+    if not auto_update:
+        # 获取SHA-256校验码（如果有）
         sha256_from_release = None
         for asset in latest_release.get("assets", []):
             if asset.get("name") == f"{exe_name}.sha256":
@@ -212,14 +206,72 @@ def check_for_update(owner="laozhong86", repo="EmailAPI", exe_name="emailAPI.exe
                     except Exception as e:
                         logging.warning(f"获取SHA-256校验文件失败: {e}")
         
-        if sha256_from_release:
+        # 返回更新信息
+        return {
+            "current_version": current_version,
+            "latest_version": latest_version_str,
+            "download_url": download_url,
+            "sha256": sha256_from_release
+        }
+    
+    # 如果是自动更新，继续原有的更新流程
+    return perform_update(download_url, latest_version_str, exe_name)
+
+
+def perform_update(download_url, latest_version_str, exe_name="emailAPI.exe", sha256=None):
+    """
+    执行更新操作
+    
+    Args:
+        download_url: 下载URL
+        latest_version_str: 最新版本号
+        exe_name: 可执行文件名称
+        sha256: SHA-256校验码（可选）
+        
+    Returns:
+        bool: 更新成功返回True，否则返回False
+    """
+    # 创建临时目录用于下载
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_file_path = os.path.join(temp_dir, exe_name)
+        logging.info(f"正在下载新版本到: {temp_file_path}")
+        
+        # 下载文件
+        if not download_file(download_url, temp_file_path):
+            logging.error("下载新版本失败，跳过更新")
+            return False
+        
+        # 验证SHA-256（如果有提供）
+        if sha256:
             calculated_sha256 = calculate_sha256(temp_file_path)
-            if calculated_sha256 != sha256_from_release:
+            if calculated_sha256 != sha256:
                 logging.error(f"SHA-256校验失败，跳过更新")
-                logging.error(f"预期: {sha256_from_release}")
+                logging.error(f"预期: {sha256}")
                 logging.error(f"实际: {calculated_sha256}")
                 return False
             logging.info("SHA-256校验通过")
+        else:
+            # 尝试获取并验证SHA-256（兼容旧版本逻辑）
+            sha256_from_release = None
+            for asset in latest_release.get("assets", []) if 'latest_release' in locals() else []:
+                if asset.get("name") == f"{exe_name}.sha256":
+                    sha_asset_url = asset.get("browser_download_url")
+                    if sha_asset_url:
+                        try:
+                            sha_response = requests.get(sha_asset_url, timeout=10)
+                            sha_response.raise_for_status()
+                            sha256_from_release = sha_response.text.strip().split(" ")[0]
+                        except Exception as e:
+                            logging.warning(f"获取SHA-256校验文件失败: {e}")
+            
+            if sha256_from_release:
+                calculated_sha256 = calculate_sha256(temp_file_path)
+                if calculated_sha256 != sha256_from_release:
+                    logging.error(f"SHA-256校验失败，跳过更新")
+                    logging.error(f"预期: {sha256_from_release}")
+                    logging.error(f"实际: {calculated_sha256}")
+                    return False
+                logging.info("SHA-256校验通过")
         
         # 获取当前可执行文件路径
         if getattr(sys, 'frozen', False):

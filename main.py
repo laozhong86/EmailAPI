@@ -25,12 +25,15 @@ sys.path.insert(0, str(project_root))
 try:
     from src.utils.convert_txt_to_json import convert_txt_to_json
     from src.email_service import start_service
-    from src.utils.self_update import check_for_update
+    from src.utils.self_update import check_for_update, perform_update
     modules_available = True
     logging.info("成功导入所需模块")
 except ImportError as e:
     logging.error(f"导入模块失败: {e}")
     modules_available = False
+
+# 全局变量，用于存储更新信息
+update_info = None
 
 
 def clear_screen():
@@ -38,12 +41,13 @@ def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-def display_menu(countdown=3):
+def display_menu(countdown=3, update_info=None):
     """
     显示主菜单并处理用户选择
     
     Args:
         countdown: 默认倒计时秒数，超时后自动启动API服务
+        update_info: 更新信息，如果有可用更新则不为None
     """
     clear_screen()
     print("=" * 50)
@@ -52,12 +56,22 @@ def display_menu(countdown=3):
     print("\n请选择操作:")
     print("1. 导入邮箱账号")
     print("2. 启动API服务")
+    
+    # 如果有可用更新，显示更新选项
+    if update_info:
+        print(f"3. 立即更新到新版本 v{update_info['latest_version']}")
+    
     print("\n默认将在 {} 秒后自动启动API服务...".format(countdown))
     print("=" * 50)
     
     # 倒计时处理
     start_time = time.time()
     choice = None
+    
+    # 设置有效按键列表
+    valid_keys = ['1', '2']
+    if update_info:
+        valid_keys.append('3')
     
     while time.time() - start_time < countdown:
         remaining = countdown - int(time.time() - start_time)
@@ -67,7 +81,7 @@ def display_menu(countdown=3):
         # 检查是否有按键输入
         if msvcrt.kbhit():
             key = msvcrt.getch().decode('utf-8')
-            if key in ['1', '2']:
+            if key in valid_keys:
                 choice = key
                 break
     
@@ -76,6 +90,8 @@ def display_menu(countdown=3):
     # 处理选择结果
     if choice == '1':
         import_email_accounts()
+    elif choice == '3' and update_info:
+        update_app(update_info)
     else:
         # 默认选择或选择2
         start_api_service()
@@ -174,8 +190,39 @@ def start_api_service():
         display_menu()
 
 
+def update_app(update_info):
+    """
+    执行应用更新
+    
+    Args:
+        update_info: 包含更新信息的字典
+    """
+    clear_screen()
+    print("=" * 50)
+    print("应用更新".center(46))
+    print("=" * 50)
+    
+    print(f"\n当前版本: {update_info['current_version']}")
+    print(f"最新版本: {update_info['latest_version']}")
+    print("\n正在准备更新...")
+    
+    # 执行更新
+    result = perform_update(
+        download_url=update_info['download_url'],
+        latest_version_str=update_info['latest_version'],
+        exe_name="emailAPI.exe",
+        sha256=update_info.get('sha256')
+    )
+    
+    if not result:
+        print("\n更新失败，请稍后再试")
+        input("\n按回车键返回主菜单...")
+        display_menu(update_info=update_info)
+
+
 def main():
     """主函数"""
+    global update_info
     try:
         # 检查更新
         if getattr(sys, 'frozen', False):
@@ -184,17 +231,28 @@ def main():
             try:
                 # 检查更新但不阻塞主程序
                 import threading
+                
+                def check_update_thread():
+                    global update_info
+                    # 设置auto_update=False，仅检查不自动更新
+                    result = check_for_update(
+                        "laozhong86", "EmailAPI", "emailAPI.exe", auto_update=False
+                    )
+                    if isinstance(result, dict):
+                        update_info = result
+                
                 update_thread = threading.Thread(
-                    target=check_for_update,
-                    args=("laozhong86", "EmailAPI", "emailAPI.exe"),
+                    target=check_update_thread,
                     daemon=True
                 )
                 update_thread.start()
+                # 等待更新检查完成，最多等待3秒
+                update_thread.join(timeout=3)
             except Exception as e:
                 logging.error(f"检查更新失败: {e}")
         
-        # 显示菜单，设置3秒倒计时
-        display_menu(countdown=3)
+        # 显示菜单，设置3秒倒计时，传入更新信息
+        display_menu(countdown=3, update_info=update_info)
     except KeyboardInterrupt:
         clear_screen()
         print("\nEmail管理系统已退出")
