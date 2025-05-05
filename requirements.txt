@@ -3,3 +3,5 @@ requests==2.31.0
 pyinstaller==6.3.0
 packaging==23.2
 python-dotenv==1.0.1 # Added for .env file loading
+beautifulsoup4==4.12.2 # 用于解析HTML邮件内容
+chardet==5.2.0 # 用于检测文本编码
