@@ -8,9 +8,43 @@ import sys
 # 配置日志记录 - Log to stderr for easier capture by Node.js
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stderr)
 
-# 定义路径 (保持 OUTPUT_DIR 计算)
-PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent.parent.parent
-OUTPUT_DIR = PROJECT_ROOT / "src" / "Email" / "data" / "oauth"
+# 获取数据目录路径的辅助函数
+def get_data_dir(subdir=None):
+    """
+    获取数据目录路径，根据运行环境自动选择正确的路径
+    
+    Args:
+        subdir: 可选的子目录名称
+        
+    Returns:
+        pathlib.Path: 数据目录的路径
+    """
+    # 检查是否在 exe 模式下运行
+    if getattr(sys, 'frozen', False):
+        # 如果是 exe 模式，使用 exe 所在目录
+        base_dir = pathlib.Path(sys.executable).parent / 'data'
+    else:
+        # 如果是开发模式，使用相对路径
+        script_path = pathlib.Path(__file__).resolve()
+        base_dir = script_path.parent.parent.parent / 'data'
+    
+    # 确保目录存在
+    if not base_dir.exists():
+        base_dir.mkdir(parents=True, exist_ok=True)
+        logging.info(f"已创建数据目录: {base_dir}")
+    
+    # 如果指定了子目录，则返回子目录路径
+    if subdir:
+        subdir_path = base_dir / subdir
+        if not subdir_path.exists():
+            subdir_path.mkdir(parents=True, exist_ok=True)
+            logging.info(f"已创建子目录: {subdir_path}")
+        return subdir_path
+    
+    return base_dir
+
+# 定义路径 (使用新的辅助函数)
+OUTPUT_DIR = get_data_dir('oauth')
 
 def convert_txt_to_json(input_file_path_str):
     """

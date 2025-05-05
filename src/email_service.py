@@ -17,6 +17,41 @@ project_root = script_path.parent.parent.parent # Navigate up from src/Email/src
 src_root = project_root / 'src' # Just the src directory, might be needed if api expects imports relative to src
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(src_root))
+
+# 辅助函数：获取数据目录路径
+def get_data_dir(subdir=None):
+    """
+    获取数据目录路径，根据运行环境自动选择正确的路径
+    
+    Args:
+        subdir: 可选的子目录名称
+        
+    Returns:
+        pathlib.Path: 数据目录的路径
+    """
+    # 检查是否在 exe 模式下运行
+    if getattr(sys, 'frozen', False):
+        # 如果是 exe 模式，使用 exe 所在目录
+        base_dir = pathlib.Path(sys.executable).parent / 'data'
+    else:
+        # 如果是开发模式，使用相对路径
+        base_dir = script_path.parent.parent / 'data'
+    
+    # 确保目录存在
+    if not base_dir.exists():
+        base_dir.mkdir(parents=True, exist_ok=True)
+        logging.info(f"已创建数据目录: {base_dir}")
+    
+    # 如果指定了子目录，则返回子目录路径
+    if subdir:
+        subdir_path = base_dir / subdir
+        if not subdir_path.exists():
+            subdir_path.mkdir(parents=True, exist_ok=True)
+            logging.info(f"已创建子目录: {subdir_path}")
+        return subdir_path
+    
+    return base_dir
+
 # Try importing the API module after path setup
 try:
     # Adjust the import path based on the actual structure if needed
@@ -30,45 +65,37 @@ except ImportError as e:
 # --- End Path Setup ---
 
 # --- 导入配置管理器 ---
-try:
-    from src.config.config_manager import load_config
-    config = load_config()
-    logging.info("成功加载配置")
-except ImportError as e:
-    logging.error(f"加载配置管理器失败: {e}，将使用默认配置")
-    config = {
-        'api': {
-            'base_url': os.getenv('API_BASE_URL', 'https://oauth.882263.xyz'),
-            'host': os.getenv('API_HOST', 'localhost'),
-            'port': int(os.getenv('API_PORT', 5001)),
-            'debug': os.getenv('API_DEBUG', 'false').lower() == 'true'
-        },
-        'email': {
-            'lease_duration_seconds': int(os.getenv('LEASE_DURATION_SECONDS', 600)),
-            'cleanup_interval_seconds': int(os.getenv('CLEANUP_INTERVAL_SECONDS', 3600)),
-            'concurrency': 1
-        }
+# !!! 移除 try...except 和 load_config() 调用 !!!
+# 直接从环境变量构建配置字典，因为 main.py 应该已经加载了 .env
+logging.info("从环境变量构建服务配置...")
+config = {
+    'api': {
+        'base_url': os.getenv('API_BASE_URL', 'https://oauth.882263.xyz'),
+        'host': os.getenv('API_HOST', 'localhost'),
+        'port': int(os.getenv('API_PORT', 5001)),
+        'debug': os.getenv('API_DEBUG', 'false').lower() == 'true'
+    },
+    'email': {
+        'lease_duration_seconds': int(os.getenv('LEASE_DURATION_SECONDS', 600)),
+        'cleanup_interval_seconds': int(os.getenv('CLEANUP_INTERVAL_SECONDS', 3600)),
+        # 保留读取并发数，如果 .env 里没有，提供默认值
+        'concurrency': int(os.getenv('EMAIL_CONCURRENCY', 1))
     }
+}
+logging.info("服务配置构建完成")
 
 # --- Flask App Setup ---
 app = Flask(__name__)
 API_PORT = config['api']['port']  # 从配置获取端口
-email_accounts_path = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'email_accounts.json'
+email_accounts_path = get_data_dir('email_accounts.json')
 # --- End Flask App Setup ---
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [%(threadName)s] - %(message)s')
 
 # --- Configuration ---
 # 使用配置中的并发设置
-if 'email' in config and 'concurrency' in config['email']:
-    concurrency_value = config['email']['concurrency']
-else:
-    concurrency_value = 1
-
-# 兼容旧格式
-config_local = {
-    'concurrency': concurrency_value
-}
+# 直接从上面构建的 config 字典读取
+concurrency_value = config['email'].get('concurrency', 1)
 
 # --- Lease Mechanism (Scheme 2) ---
 email_leases = {}  # {"email@example.com": timestamp}
@@ -86,7 +113,7 @@ def request_email():
     Also performs cleanup of expired leases.
     """
     # Define oauth_dir_path within the function scope
-    oauth_dir_path = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'oauth'
+    oauth_dir_path = get_data_dir('oauth')
 
     # Perform lease cleanup
     with lease_lock:
@@ -177,7 +204,7 @@ def get_latest_email():
             return jsonify({"error": "Email lease expired."}), 404
 
     # Construct paths
-    oauth_dir_path = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'oauth'
+    oauth_dir_path = get_data_dir('oauth')
     filename_base = email.replace('@', '_at_')
     original_path = oauth_dir_path / f"{filename_base}.json"
 
@@ -243,7 +270,7 @@ def mark_email_used():
             return jsonify({"error": "Email lease expired."}), 404
 
     # Construct paths
-    oauth_dir_path = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'oauth'
+    oauth_dir_path = get_data_dir('oauth')
     filename_base = email.replace('@', '_at_')
     original_path = oauth_dir_path / f"{filename_base}.json"
     used_path = oauth_dir_path / f"{filename_base}.json.used"
@@ -305,7 +332,7 @@ def clear_mailbox_route():
     logging.info(f"Received request to clear mailbox for: {email}")
 
     # Define oauth_dir_path within the function scope
-    oauth_dir_path = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'oauth'
+    oauth_dir_path = get_data_dir('oauth')
     # credential_file = oauth_dir_path / f"{email}.json"
     # Use the consistent '_at_' format for the filename
     credential_file = oauth_dir_path / f"{email.replace('@', '_at_')}.json"
@@ -356,7 +383,7 @@ def cleanup_used_emails(max_age_hours=48):
     """
     清理超过指定时间的已使用邮箱文件
     """
-    oauth_dir_path = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'oauth'
+    oauth_dir_path = get_data_dir('oauth')
     current_time = time.time()
     deleted_count = 0
     
@@ -449,7 +476,7 @@ def start_service(host=None, port=None, debug=None):
 def load_tasks():
     script_dir = pathlib.Path(__file__).parent.resolve()
     # 正确导航到OAuth目录：从src/Email/src到Email/data/oauth
-    oauth_dir = script_dir.parent / 'data' / 'oauth'
+    oauth_dir = get_data_dir('oauth')
     oauth_dir = oauth_dir.resolve()
 
     logging.info(f"Scanning for task files in: {oauth_dir}")

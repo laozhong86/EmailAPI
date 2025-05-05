@@ -2,8 +2,12 @@ import os
 import sys
 import time
 import pathlib
+from pathlib import Path
 import logging
 import msvcrt  # 用于Windows下的按键检测
+
+# 导入配置加载器
+from src.config.config_manager import load_config
 
 # 导入版本信息
 try:
@@ -15,6 +19,43 @@ except ImportError:
 
 # 配置日志记录
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# <<< 新增：确定 .env 文件路径并加载配置 >>>
+def get_env_path():
+    """确定并返回有效的 .env 文件路径"""
+    if getattr(sys, 'frozen', False):
+        # 打包环境 (exe)
+        exe_path = Path(sys.executable)
+        env_path = exe_path.parent / '.env'
+        logging.info(f"运行在打包环境，尝试加载 .env 文件于: {env_path}")
+    else:
+        # 源代码环境 (.py)
+        script_path = Path(__file__).resolve()
+        project_root = script_path.parent
+        env_path = project_root / '.env'
+        logging.info(f"运行在源代码环境，尝试加载 .env 文件于: {env_path}")
+
+    if env_path.exists() and env_path.is_file():
+        logging.info(f"找到有效的 .env 文件: {env_path}")
+        return env_path
+    else:
+        logging.warning(f"未在预期位置找到 .env 文件: {env_path}")
+        return None
+
+effective_env_path = get_env_path()
+
+# 提前加载配置
+# 这将使用上面确定的路径来加载 .env
+# 如果 effective_env_path 为 None, load_config 会使用其内部默认逻辑（这可能不是我们想要的）
+# 或者我们可以在 load_config 中处理 None 的情况，或者在这里确保只有在找到文件时才调用
+if effective_env_path:
+    load_config(env_path=effective_env_path)
+    logging.info(f"已使用 {effective_env_path} 加载配置")
+else:
+    logging.warning("未找到有效的 .env 文件，将使用默认配置或环境变量")
+    # 可以选择在这里调用 load_config() 让其尝试默认行为，或依赖后续代码处理
+    # load_config() # 如果需要 fallback 到 config_manager 的默认行为
+# <<< 结束新增部分 >>>
 
 # 添加项目根目录到sys.path
 script_path = pathlib.Path(__file__).resolve()

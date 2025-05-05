@@ -4,8 +4,8 @@
 !.env.example
 
 # 认证数据
-/data/oauth/*.json
-/data/oauth/*.used
+/data/
+/data/
 
 # Python相关
 __pycache__/
@@ -38,3 +38,4 @@ logs/
 
 # 临时文件
 /data/temp/
+tests/
