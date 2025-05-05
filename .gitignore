@@ -5,7 +5,6 @@
 
 # 认证数据
 /data/
-/data/
 
 # Python相关
 __pycache__/
@@ -39,3 +38,4 @@ logs/
 # 临时文件
 /data/temp/
 tests/
+.DS_Store

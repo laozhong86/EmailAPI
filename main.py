@@ -4,7 +4,6 @@ import time
 import pathlib
 from pathlib import Path
 import logging
-import msvcrt  # 用于Windows下的按键检测
 
 # 导入配置加载器
 from src.config.config_manager import load_config
@@ -79,6 +78,16 @@ except ImportError as e:
 # 全局变量，用于存储更新信息
 update_info = None
 
+# <<< 新增：条件导入 >>>
+if os.name == 'nt':
+    import msvcrt
+    logging.info("Windows detected, msvcrt imported.")
+else:
+    # 在非 Windows 系统上，不需要导入 msvcrt
+    # 可以选择导入 termios/tty/select 等，但这里为了简单起见，仅跳过
+    logging.info("Non-Windows system detected, msvcrt not imported.")
+    pass
+# <<< 结束新增 >>>
 
 def clear_screen():
     """清除控制台屏幕"""
@@ -114,24 +123,39 @@ def display_menu(countdown=3, update_info=None):
     choice = None
     
     # 设置有效按键列表
-    valid_keys = ['1', '2']
+    valid_choices = ['1', '2']
     if update_info:
-        valid_keys.append('3')
-    
+        valid_choices.append('3')
+
     while time.time() - start_time < countdown:
-        remaining = countdown - int(time.time() - start_time)
-        sys.stdout.write(f"\r等待选择 ({remaining} 秒)... ")
-        sys.stdout.flush()
-        
-        # 检查是否有按键输入
-        if msvcrt.kbhit():
+        # 检查是否有按键按下 (仅Windows)
+        key_pressed = False
+        if os.name == 'nt' and msvcrt.kbhit():
             key = msvcrt.getch().decode('utf-8')
-            if key in valid_keys:
+            if key in valid_choices:
                 choice = key
-                break
-    
-    print("\n")
-    
+                key_pressed = True
+                break  # 有效输入，跳出循环
+            elif key == '\r' or key == '\n': # 回车键，但没输入有效选项，忽略或按默认处理？目前是忽略
+                 pass # 可以选择在这里触发默认行为，或让循环继续
+            # 可以添加对其他按键的处理，例如退出
+
+        # 更新倒计时显示 (优化显示，避免频繁刷新)
+        remaining_time = max(0, int(countdown - (time.time() - start_time)))
+        # 使用 ANSI 转义码将光标移动到行首并清除行，然后打印新信息
+        # \r: 回到行首, \033[K: 清除从光标到行尾的内容
+        print(f"\r\033[K默认将在 {remaining_time} 秒后自动启动API服务... 请输入选择: ", end="")
+        
+        # 如果在非Windows系统下，或者Windows下没有按键，则短暂休眠
+        if not key_pressed:
+             time.sleep(0.1) # 减少CPU占用
+
+    print() # 结束倒计时行的打印，换行
+
+    # 如果倒计时结束仍未选择，默认启动服务
+    if choice is None:
+        choice = '2'
+
     # 处理选择结果
     if choice == '1':
         import_email_accounts()
