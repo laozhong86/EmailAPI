@@ -524,9 +524,18 @@ def email_worker():
                 if not all([email, client_id, refresh_token]):
                     logging.error(f"Missing required data (email, client_id, refresh_token) in {task_file_path}. Skipping.")
                 else:
-                    # Call the API function - replace 'process_email_task' if needed
-                    result = cloud_email_api.process_email_task(email, client_id, refresh_token)
-                    logging.info(f"API call result for {email}: {result}")  # Log the result
+                    # 调用已实现的API函数获取最新邮件
+                    if email_api_available:
+                        try:
+                            # 使用已实现的get_latest_email函数代替不存在的process_email_task
+                            result = cloud_email_api.get_latest_email(refresh_token, client_id, email)
+                            logging.info(f"获取最新邮件结果 {email}: {result is not None}")  # 记录结果
+                        except Exception as e:
+                            logging.error(f"获取 {email} 验证码时发生错误: {e}")
+                            result = None
+                    else:
+                        logging.error(f"Failed to retrieve email from cloud API: name 'cloud_email_api' is not defined")
+                        result = None
 
             except json.JSONDecodeError:
                 logging.error(f"Invalid JSON in task file: {task_file_path}. Skipping.")

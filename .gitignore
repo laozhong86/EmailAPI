@@ -39,3 +39,5 @@ logs/
 /data/temp/
 tests/
 .DS_Store
+# SpecStory explanation file
+.specstory/.what-is-this.md
